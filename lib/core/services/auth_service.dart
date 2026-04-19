@@ -18,18 +18,6 @@ class AuthService {
       data: {'full_name': fullName},
     );
 
-    if (response.user != null) {
-      // Create user profile in users table
-      await _client.from('users').upsert({
-        'id': response.user!.id,
-        'email': email,
-        'full_name': fullName,
-        'plan': 'free',
-        'credits_remaining': 10,
-        'total_content_generated': 0,
-      });
-    }
-
     return response;
   }
 
