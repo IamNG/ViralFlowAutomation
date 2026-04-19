@@ -1,0 +1,22 @@
+project_id = "default"
+
+[functions.generate-content]
+verify_jwt = false
+
+[functions.generate-hashtags]
+verify_jwt = false
+
+[functions.generate-image]
+verify_jwt = false
+
+[functions.dashboard-stats]
+verify_jwt = false
+
+[functions.verify-payment]
+verify_jwt = false
+
+[functions.auto-publish]
+verify_jwt = false
+
+[functions.create-order]
+verify_jwt = false
