@@ -11,6 +11,9 @@ flutter --version
 echo "Resolving dependencies..."
 flutter pub get
 
+echo "Generating built models (Freezed/JSON)..."
+dart run build_runner build --delete-conflicting-outputs
+
 echo "Building web application..."
 flutter build web \
   --release \
