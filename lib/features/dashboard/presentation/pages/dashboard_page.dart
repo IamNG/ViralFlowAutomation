@@ -35,7 +35,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
       body: RefreshIndicator(
         onRefresh: () async {
           ref.invalidate(currentUserProvider);
-          ref.invalidate(dashboardStatsProvider);
+          ref.invalidate(dashboardStatsProvider(null));
           ref.invalidate(recentContentProvider);
         },
         child: SingleChildScrollView(
