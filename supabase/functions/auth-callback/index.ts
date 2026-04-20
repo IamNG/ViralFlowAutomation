@@ -64,12 +64,13 @@ serve(async (req) => {
     if (dbError) throw dbError;
 
     // 4. Redirect Back to the ViralFlow Flutter Dashboard
-    // We redirect to the Vercel hosted link which triggers a successful state update!
-    return Response.redirect('https://viralflow-automation.vercel.app/profile?success=true', 302);
+    // We redirect to the Vercel base link to prevent Vercel 404 Routing errors (SPA conflict)
+    // Facebook automatically appends #_=_ we want to prevent it from confusing Vercel
+    return Response.redirect('https://viralflow-automation.vercel.app/?oauth_success=true', 302);
 
   } catch (error) {
     console.error("OAuth Error:", error.message);
-    // Redirect to app with an error flag
-    return Response.redirect(`https://viralflow-automation.vercel.app/profile?error=${encodeURIComponent(error.message)}`, 302);
+    // Redirect to app base with an error flag
+    return Response.redirect(`https://viralflow-automation.vercel.app/?oauth_error=${encodeURIComponent(error.message)}`, 302);
   }
 });

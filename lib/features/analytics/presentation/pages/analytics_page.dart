@@ -72,7 +72,7 @@ class _AnalyticsPageState extends ConsumerState<AnalyticsPage> with SingleTicker
             onPeriodChanged: (p) => setState(() => _selectedPeriod = p)
           ),
           const _PlatformsTab(),
-          const _InsightsTab(),
+          _InsightsTab(selectedAccountId: _selectedAccountId),
         ],
       ),
     );
@@ -306,11 +306,15 @@ class _PlatformsTab extends StatelessWidget {
   }
 }
 
-class _InsightsTab extends StatelessWidget {
-  const _InsightsTab();
+class _InsightsTab extends ConsumerWidget {
+  final String? selectedAccountId;
+  
+  const _InsightsTab({required this.selectedAccountId});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final insightsAsync = ref.watch(insightsProvider(selectedAccountId));
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -365,20 +369,19 @@ class _InsightsTab extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 16),
-                _RecommendationCard(
-                  title: 'Create more Reels',
-                  description: 'Reels get 3x more engagement than static posts on your account',
-                  impact: 'High',
-                ),
-                _RecommendationCard(
-                  title: 'Post educational threads',
-                  description: 'Educational content performs 2x better on Twitter for your audience',
-                  impact: 'Medium',
-                ),
-                _RecommendationCard(
-                  title: 'Use trending audio',
-                  description: 'Posts with trending audio get 40% more reach on Instagram',
-                  impact: 'High',
+                insightsAsync.when(
+                  data: (insights) {
+                    if (insights.isEmpty) return const Text('Not enough data to calculate insights yet.');
+                    return Column(
+                      children: insights.map((item) => _RecommendationCard(
+                        title: item.title,
+                        description: item.description,
+                        impact: item.impact,
+                      )).toList(),
+                    );
+                  },
+                  loading: () => const Center(child: CircularProgressIndicator()),
+                  error: (e, __) => Text('Could not fetch recommendations: $e'),
                 ),
               ],
             ),

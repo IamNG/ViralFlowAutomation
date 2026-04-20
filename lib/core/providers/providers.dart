@@ -93,6 +93,11 @@ final scheduledContentProvider = FutureProvider.autoDispose((ref) async {
       );
 });
 
+// AI Insights provider
+final insightsProvider = FutureProvider.family.autoDispose<List<InsightRecommendation>, String?>((ref, accountId) async {
+  return ref.read(analyticsServiceProvider).getInsights(accountId: accountId);
+});
+
 // Connected platforms provider
 final connectedPlatformsProvider = FutureProvider.autoDispose((ref) async {
   return ref.read(oauthServiceProvider).getConnectedPlatforms();

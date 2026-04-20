@@ -68,6 +68,38 @@ class AnalyticsService {
     final data = response.data as List;
     return data.map((e) => PostingTime.fromJson(e)).toList();
   }
+
+  /// Get AI Strategy Insights
+  Future<List<InsightRecommendation>> getInsights({String? accountId}) async {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) throw Exception('User not authenticated');
+
+    final response = await _client.functions.invoke(
+      'generate-insights',
+      body: {'user_id': userId, 'account_id': accountId},
+    );
+
+    final data = response.data as List;
+    return data.map((e) => InsightRecommendation.fromJson(e)).toList();
+  }
+}
+
+class InsightRecommendation {
+  final String title;
+  final String description;
+  final String impact;
+
+  InsightRecommendation({
+    required this.title,
+    required this.description,
+    required this.impact,
+  });
+
+  factory InsightRecommendation.fromJson(Map<String, dynamic> json) => InsightRecommendation(
+        title: json['title'] ?? '',
+        description: json['description'] ?? '',
+        impact: json['impact'] ?? 'Medium',
+      );
 }
 
 class DashBoardStats {
