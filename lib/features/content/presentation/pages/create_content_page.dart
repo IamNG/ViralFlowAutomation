@@ -3,6 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:viralflow_automation/app/app_theme.dart';
 import 'package:viralflow_automation/core/models/content_model.dart';
 import 'package:viralflow_automation/core/providers/providers.dart';
+import 'package:file_picker/file_picker.dart';
+import 'dart:io';
+import 'package:flutter/foundation.dart';
+
+enum CreationMode { ai, manual }
 
 class CreateContentPage extends ConsumerStatefulWidget {
   const CreateContentPage({super.key});
@@ -12,6 +17,9 @@ class CreateContentPage extends ConsumerStatefulWidget {
 }
 
 class _CreateContentPageState extends ConsumerState<CreateContentPage> {
+  CreationMode _creationMode = CreationMode.ai;
+  PlatformFile? _selectedMedia;
+
   final _promptController = TextEditingController();
   final _captionController = TextEditingController();
   ContentType _selectedContentType = ContentType.post;
@@ -140,6 +148,19 @@ class _CreateContentPageState extends ConsumerState<CreateContentPage> {
     }
   }
 
+  Future<void> _pickMedia() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.media,
+      allowMultiple: false,
+    );
+
+    if (result != null && result.files.isNotEmpty) {
+      setState(() {
+        _selectedMedia = result.files.first;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -149,6 +170,48 @@ class _CreateContentPageState extends ConsumerState<CreateContentPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Mode Selector
+            Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: Colors.grey[200],
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => setState(() => _creationMode = CreationMode.ai),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(
+                          color: _creationMode == CreationMode.ai ? Colors.white : Colors.transparent,
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: _creationMode == CreationMode.ai ? [BoxShadow(color: Colors.black12, blurRadius: 4)] : null,
+                        ),
+                        child: const Center(child: Text('✨ AI Autopilot', style: TextStyle(fontWeight: FontWeight.bold))),
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => setState(() => _creationMode = CreationMode.manual),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(
+                          color: _creationMode == CreationMode.manual ? Colors.white : Colors.transparent,
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: _creationMode == CreationMode.manual ? [BoxShadow(color: Colors.black12, blurRadius: 4)] : null,
+                        ),
+                        child: const Center(child: Text('📤 Upload Media (BYOC)', style: TextStyle(fontWeight: FontWeight.bold))),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+
             // Step 1: Content Type
             _SectionTitle('1. Content Type', Icons.category_rounded),
             const SizedBox(height: 12),
@@ -200,9 +263,10 @@ class _CreateContentPageState extends ConsumerState<CreateContentPage> {
             ),
             const SizedBox(height: 24),
 
-            // Step 3: AI Prompt
-            _SectionTitle('3. What do you want to create?', Icons.auto_awesome_rounded),
-            const SizedBox(height: 12),
+            // Step 3: Conditional based on Mode
+            if (_creationMode == CreationMode.ai) ...[
+              _SectionTitle('3. What do you want to create?', Icons.auto_awesome_rounded),
+              const SizedBox(height: 12),
             TextField(
               controller: _promptController,
               maxLines: 4,
@@ -299,6 +363,63 @@ class _CreateContentPageState extends ConsumerState<CreateContentPage> {
                 label: Text(_isGenerating ? 'Generating...' : 'Generate with AI ✨'),
               ),
             ),
+            ] else ...[
+              // MANUAL MODE UI
+              _SectionTitle('3. Upload your Media', Icons.upload_file_rounded),
+              const SizedBox(height: 12),
+              GestureDetector(
+                onTap: _pickMedia,
+                child: Container(
+                  width: double.infinity,
+                  height: 160,
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryColor.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppTheme.primaryColor.withOpacity(0.3), style: BorderStyle.solid, width: 2), // Changed to solid for simplicity 
+                  ),
+                  child: Center(
+                    child: _selectedMedia == null
+                        ? Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.cloud_upload_rounded, size: 48, color: AppTheme.primaryColor.withOpacity(0.7)),
+                              const SizedBox(height: 12),
+                              const Text('Tap to upload Video or Image', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primaryColor)),
+                              const SizedBox(height: 4),
+                              Text('Supports MP4, MOV, JPG, PNG', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                            ],
+                          )
+                        : Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.check_circle_rounded, size: 48, color: AppTheme.successColor),
+                              const SizedBox(height: 12),
+                              Text(_selectedMedia!.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13), textAlign: TextAlign.center, maxLines: 1),
+                              const SizedBox(height: 4),
+                              Text('${(_selectedMedia!.size / 1024 / 1024).toStringAsFixed(2)} MB', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                            ],
+                          ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              _SectionTitle('4. Write Caption', Icons.edit_note_rounded),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _captionController,
+                maxLines: 4,
+                decoration: InputDecoration(
+                  hintText: 'Write your caption or description here...',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                ),
+              ),
+              const SizedBox(height: 16),
+              OutlinedButton.icon(
+                onPressed: _generateHashtags,
+                icon: const Icon(Icons.auto_awesome),
+                label: const Text('Auto-generate Hashtags from Caption'),
+              ),
+            ],
             const SizedBox(height: 24),
 
             // Generated Content Preview
