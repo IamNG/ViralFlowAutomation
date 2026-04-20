@@ -4,16 +4,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:viralflow_automation/app/app_theme.dart';
 import 'package:viralflow_automation/core/providers/providers.dart';
 
-class AnalyticsPage extends StatefulWidget {
+class AnalyticsPage extends ConsumerStatefulWidget {
   const AnalyticsPage({super.key});
 
   @override
-  State<AnalyticsPage> createState() => _AnalyticsPageState();
+  ConsumerState<AnalyticsPage> createState() => _AnalyticsPageState();
 }
 
-class _AnalyticsPageState extends State<AnalyticsPage> with SingleTickerProviderStateMixin {
+class _AnalyticsPageState extends ConsumerState<AnalyticsPage> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   String _selectedPeriod = '7d';
+  String? _selectedAccountId;
 
   @override
   void initState() {
@@ -31,7 +32,28 @@ class _AnalyticsPageState extends State<AnalyticsPage> with SingleTickerProvider
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Analytics 📊'),
+        title: ref.watch(connectedPlatformsStreamProvider).when(
+          data: (platforms) {
+            if (platforms.isEmpty) return const Text('Analytics 📊');
+            return DropdownButtonHideUnderline(
+              child: DropdownButton<String?>(
+                value: _selectedAccountId,
+                icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.black87),
+                hint: const Text('🌍 Overview (All)', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
+                items: [
+                  const DropdownMenuItem(value: null, child: Text('🌍 Overview (All)', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold))),
+                  ...platforms.map((p) => DropdownMenuItem(
+                    value: p['id'] as String,
+                    child: Text('@${p['platform_username']} (${p['platform']})', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  ))
+                ],
+                onChanged: (val) => setState(() => _selectedAccountId = val),
+              ),
+            );
+          },
+          loading: () => const Text('Analytics 📊'),
+          error: (_, __) => const Text('Analytics 📊'),
+        ),
         bottom: TabBar(
           controller: _tabController,
           tabs: const [
@@ -44,7 +66,11 @@ class _AnalyticsPageState extends State<AnalyticsPage> with SingleTickerProvider
       body: TabBarView(
         controller: _tabController,
         children: [
-          _OverviewTab(selectedPeriod: _selectedPeriod, onPeriodChanged: (p) => setState(() => _selectedPeriod = p)),
+          _OverviewTab(
+            selectedPeriod: _selectedPeriod, 
+            selectedAccountId: _selectedAccountId,
+            onPeriodChanged: (p) => setState(() => _selectedPeriod = p)
+          ),
           const _PlatformsTab(),
           const _InsightsTab(),
         ],
@@ -55,9 +81,10 @@ class _AnalyticsPageState extends State<AnalyticsPage> with SingleTickerProvider
 
 class _OverviewTab extends ConsumerWidget {
   final String selectedPeriod;
+  final String? selectedAccountId;
   final ValueChanged<String> onPeriodChanged;
 
-  const _OverviewTab({required this.selectedPeriod, required this.onPeriodChanged});
+  const _OverviewTab({required this.selectedPeriod, required this.selectedAccountId, required this.onPeriodChanged});
 
   String _formatCompactNumber(int number) {
     if (number >= 1000000) {
@@ -70,7 +97,7 @@ class _OverviewTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final statsAsync = ref.watch(dashboardStatsProvider);
+    final statsAsync = ref.watch(dashboardStatsProvider(selectedAccountId));
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),

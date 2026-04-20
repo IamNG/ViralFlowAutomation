@@ -56,8 +56,8 @@ final currentUserProvider = FutureProvider.autoDispose((ref) async {
 });
 
 // Dashboard stats provider
-final dashboardStatsProvider = FutureProvider.autoDispose<DashBoardStats>((ref) async {
-  return ref.read(analyticsServiceProvider).getDashboardStats();
+final dashboardStatsProvider = FutureProvider.family.autoDispose<DashBoardStats, String?>((ref, accountId) async {
+  return ref.read(analyticsServiceProvider).getDashboardStats(accountId: accountId);
 });
 
 // Recent content provider
@@ -71,8 +71,8 @@ final allContentProvider = FutureProvider.autoDispose((ref) async {
 });
 
 // Content performance provider (30 days)
-final contentPerformanceProvider = FutureProvider.autoDispose((ref) async {
-  return ref.read(analyticsServiceProvider).getContentPerformance(days: 30);
+final contentPerformanceProvider = FutureProvider.family.autoDispose<List<DailyStats>, String?>((ref, accountId) async {
+  return ref.read(analyticsServiceProvider).getContentPerformance(days: 30, accountId: accountId);
 });
 
 // Platform analytics provider
@@ -81,8 +81,8 @@ final platformAnalyticsProvider = FutureProvider.autoDispose((ref) async {
 });
 
 // Best posting times provider
-final bestPostingTimesProvider = FutureProvider.autoDispose((ref) async {
-  return ref.read(analyticsServiceProvider).getBestPostingTimes();
+final bestPostingTimesProvider = FutureProvider.family.autoDispose<List<PostingTime>, String?>((ref, accountId) async {
+  return ref.read(analyticsServiceProvider).getBestPostingTimes(accountId: accountId);
 });
 
 // Scheduled content provider

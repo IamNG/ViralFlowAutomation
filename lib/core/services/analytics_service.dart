@@ -6,13 +6,13 @@ class AnalyticsService {
   AnalyticsService(this._client);
 
   /// Get dashboard stats
-  Future<DashBoardStats> getDashboardStats() async {
+  Future<DashBoardStats> getDashboardStats({String? accountId}) async {
     final userId = _client.auth.currentUser?.id;
     if (userId == null) throw Exception('User not authenticated');
 
     final response = await _client.functions.invoke(
       'dashboard-stats',
-      body: {'user_id': userId},
+      body: {'user_id': userId, 'account_id': accountId},
     );
 
     final data = response.data as Map<String, dynamic>;
@@ -22,6 +22,7 @@ class AnalyticsService {
   /// Get content performance over time
   Future<List<DailyStats>> getContentPerformance({
     int days = 30,
+    String? accountId,
   }) async {
     final userId = _client.auth.currentUser?.id;
     if (userId == null) throw Exception('User not authenticated');
@@ -31,6 +32,7 @@ class AnalyticsService {
       body: {
         'user_id': userId,
         'days': days,
+        'account_id': accountId,
       },
     );
 
@@ -39,13 +41,13 @@ class AnalyticsService {
   }
 
   /// Get platform-wise analytics
-  Future<Map<String, PlatformStats>> getPlatformAnalytics() async {
+  Future<Map<String, PlatformStats>> getPlatformAnalytics({String? accountId}) async {
     final userId = _client.auth.currentUser?.id;
     if (userId == null) throw Exception('User not authenticated');
 
     final response = await _client.functions.invoke(
       'platform-analytics',
-      body: {'user_id': userId},
+      body: {'user_id': userId, 'account_id': accountId},
     );
 
     final data = response.data as Map<String, dynamic>;
@@ -54,13 +56,13 @@ class AnalyticsService {
   }
 
   /// Get best posting times
-  Future<List<PostingTime>> getBestPostingTimes() async {
+  Future<List<PostingTime>> getBestPostingTimes({String? accountId}) async {
     final userId = _client.auth.currentUser?.id;
     if (userId == null) throw Exception('User not authenticated');
 
     final response = await _client.functions.invoke(
       'best-posting-times',
-      body: {'user_id': userId},
+      body: {'user_id': userId, 'account_id': accountId},
     );
 
     final data = response.data as List;
