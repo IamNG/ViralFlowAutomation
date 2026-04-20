@@ -108,21 +108,27 @@ class AIService {
   }
 
   /// Repurpose content for different platforms
-  Future<Map<String, String>> repurposeContent({
-    required String originalContent,
+  Future<Map<String, RepurposedVariant>> repurposeContent({
+    required String caption,
     required List<Platform> targetPlatforms,
+    String tone = 'casual',
+    String language = 'hinglish',
   }) async {
     try {
       final response = await _client.functions.invoke(
         'repurpose-content',
         body: {
-          'original_content': originalContent,
-          'target_platforms': targetPlatforms.map((p) => p.name).toList(),
+          'caption': caption,
+          'platforms': targetPlatforms.map((p) => p.name).toList(),
+          'tone': tone,
+          'language': language,
         },
       );
 
-      final data = jsonDecode(response.data);
-      return Map<String, String>.from(data['repurposed']);
+      final data = response.data is String ? jsonDecode(response.data) : response.data;
+      final variants = data['variants'] as Map<String, dynamic>;
+      return variants.map((key, value) =>
+          MapEntry(key, RepurposedVariant.fromJson(value as Map<String, dynamic>)));
     } catch (e) {
       throw _handleError(e);
     }
@@ -175,5 +181,26 @@ class TrendingTopic {
         category: json['category'] ?? '',
         volume: json['volume'] ?? 0,
         growthRate: (json['growth_rate'] ?? 0).toDouble(),
+      );
+}
+
+class RepurposedVariant {
+  final String caption;
+  final List<String> hashtags;
+  final int charCount;
+  final String tip;
+
+  RepurposedVariant({
+    required this.caption,
+    required this.hashtags,
+    required this.charCount,
+    required this.tip,
+  });
+
+  factory RepurposedVariant.fromJson(Map<String, dynamic> json) => RepurposedVariant(
+        caption: json['caption'] ?? '',
+        hashtags: List<String>.from(json['hashtags'] ?? []),
+        charCount: json['char_count'] ?? 0,
+        tip: json['tip'] ?? '',
       );
 }

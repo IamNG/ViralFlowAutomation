@@ -17,6 +17,8 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     final userAsync = ref.watch(currentUserProvider);
     final statsAsync = ref.watch(dashboardStatsProvider(null));
     final recentContentAsync = ref.watch(recentContentProvider);
+    final insightsAsync = ref.watch(insightsProvider(null));
+    final platformsAsync = ref.watch(connectedPlatformsProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -37,6 +39,8 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
           ref.invalidate(currentUserProvider);
           ref.invalidate(dashboardStatsProvider(null));
           ref.invalidate(recentContentProvider);
+          ref.invalidate(insightsProvider(null));
+          ref.invalidate(connectedPlatformsProvider);
         },
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -103,6 +107,69 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
               ),
               const SizedBox(height: 24),
 
+              // Connected Platforms Summary
+              platformsAsync.when(
+                data: (platforms) {
+                  if (platforms.isEmpty) return const SizedBox.shrink();
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Connected Handles',
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        height: 70,
+                        child: ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: platforms.length,
+                          separatorBuilder: (_, __) => const SizedBox(width: 12),
+                          itemBuilder: (context, index) {
+                            final p = platforms[index];
+                            return Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).cardColor,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.grey.withOpacity(0.1)),
+                              ),
+                              child: Row(
+                                children: [
+                                  CircleAvatar(
+                                    radius: 18,
+                                    backgroundColor: AppTheme.primaryColor.withOpacity(0.1),
+                                    child: Icon(
+                                      p['platform'] == 'instagram' 
+                                        ? Icons.camera_alt_rounded 
+                                        : Icons.facebook_rounded,
+                                      size: 18, 
+                                      color: AppTheme.primaryColor
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text('@${p['platform_username']}', 
+                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                      Text(p['platform'].toString().toUpperCase(), 
+                                        style: TextStyle(fontSize: 10, color: Colors.grey[600])),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                    ],
+                  );
+                },
+                loading: () => const SizedBox.shrink(),
+                error: (_, __) => const SizedBox.shrink(),
+              ),
+
               // Quick Actions
               const Text('Quick Actions',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
@@ -125,7 +192,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                   const SizedBox(width: 12),
                   _QuickActionCard(
                     icon: Icons.trending_up_rounded,
-                    label: 'Trends',
+                    label: 'Analytics',
                     gradient: const LinearGradient(
                       colors: [Color(0xFFFF6B6B), Color(0xFFFF8E53)],
                     ),
@@ -135,11 +202,11 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
               ),
               const SizedBox(height: 24),
 
-              // Trending Topics
+              // AI Growth Insights
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('🔥 Trending Topics',
+                  const Text('🚀 AI Growth Insights',
                       style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   TextButton(
                     onPressed: () => context.go('/analytics'),
@@ -148,12 +215,21 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                 ],
               ),
               const SizedBox(height: 12),
-              const _TrendingTopicCard(
-                  title: 'AI Tools for Creators', category: 'Tech', growth: '+245%'),
-              const _TrendingTopicCard(
-                  title: 'Instagram Reels Tips', category: 'Social Media', growth: '+180%'),
-              const _TrendingTopicCard(
-                  title: 'Side Hustle Ideas', category: 'Business', growth: '+156%'),
+              insightsAsync.when(
+                data: (insights) {
+                  if (insights.isEmpty) return const Text('Connecting accounts to see AI tips...');
+                  return Column(
+                    children: insights.map((i) => _TrendingTopicCard(
+                      title: i.title, 
+                      category: i.impact, 
+                      growth: 'PRO TIP',
+                      description: i.description,
+                    )).toList(),
+                  );
+                },
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (e, __) => Text('Error loading insights: $e'),
+              ),
               const SizedBox(height: 24),
 
               // Recent Content
@@ -308,44 +384,74 @@ class _TrendingTopicCard extends StatelessWidget {
   final String title;
   final String category;
   final String growth;
+  final String? description;
 
   const _TrendingTopicCard({
     required this.title,
     required this.category,
     required this.growth,
+    this.description,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.grey.withOpacity(0.1)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
-                Text(category, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
-              ],
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title,
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                    const SizedBox(height: 2),
+                    Text(category.toUpperCase(),
+                        style: TextStyle(
+                            fontSize: 10,
+                            color: AppTheme.primaryColor,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.5)),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppTheme.successColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(growth,
+                    style: const TextStyle(
+                        color: AppTheme.successColor,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 10)),
+              ),
+            ],
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: AppTheme.successColor.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(20),
+          if (description != null) ...[
+            const SizedBox(height: 10),
+            Text(
+              description!,
+              style: TextStyle(fontSize: 13, color: Colors.grey[700], height: 1.4),
             ),
-            child: Text(growth,
-                style: const TextStyle(
-                    color: AppTheme.successColor, fontWeight: FontWeight.bold, fontSize: 12)),
-          ),
+          ],
         ],
       ),
     );

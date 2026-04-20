@@ -138,87 +138,123 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             // Connected Accounts
             const Text('Connected Accounts', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
-            ref.watch(connectedPlatformsProvider).when(
+            ref.watch(connectedPlatformsStreamProvider).when(
               data: (connectedList) {
-               final connectedSet = connectedList.map((e) => e['platform'] as String).toSet();
+                final connectedSet = connectedList.map((e) => e['platform'] as String).toSet();
                 
-               return Column(
-                  children: [
-                    _ConnectedAccountTile(
-                      icon: Icons.camera_alt_rounded,
-                      name: 'Instagram',
-                      color: const Color(0xFFE1306C),
-                      isConnected: connectedSet.contains('instagram'),
-                      onToggle: () {
-                        if (connectedSet.contains('instagram')) {
-                          ref.read(oauthServiceProvider).disconnectPlatform('instagram');
-                        } else {
-                          ref.read(oauthServiceProvider).connectPlatform('instagram');
-                        }
-                        ref.invalidate(connectedPlatformsProvider);
-                      },
-                    ),
-                    _ConnectedAccountTile(
-                      icon: Icons.smart_display_rounded,
-                      name: 'YouTube',
-                      color: const Color(0xFFFF0000),
-                      isConnected: connectedSet.contains('youtube'),
-                      onToggle: () {
-                         if (connectedSet.contains('youtube')) {
-                          ref.read(oauthServiceProvider).disconnectPlatform('youtube');
-                        } else {
-                          ref.read(oauthServiceProvider).connectPlatform('youtube');
-                        }
-                        ref.invalidate(connectedPlatformsProvider);
-                      },
-                    ),
-                    _ConnectedAccountTile(
-                      icon: Icons.tag_rounded,
-                      name: 'Twitter',
-                      color: const Color(0xFF1DA1F2),
-                      isConnected: connectedSet.contains('twitter'),
-                      onToggle: () {
-                         if (connectedSet.contains('twitter')) {
-                          ref.read(oauthServiceProvider).disconnectPlatform('twitter');
-                        } else {
-                          ref.read(oauthServiceProvider).connectPlatform('twitter');
-                        }
-                        ref.invalidate(connectedPlatformsProvider);
-                      },
-                    ),
-                    _ConnectedAccountTile(
-                      icon: Icons.work_rounded,
-                      name: 'LinkedIn',
-                      color: const Color(0xFF0077B5),
-                      isConnected: connectedSet.contains('linkedin'),
-                      onToggle: () {
-                        if (connectedSet.contains('linkedin')) {
-                          ref.read(oauthServiceProvider).disconnectPlatform('linkedin');
-                        } else {
-                          ref.read(oauthServiceProvider).connectPlatform('linkedin');
-                        }
-                        ref.invalidate(connectedPlatformsProvider);
-                      },
-                    ),
-                    _ConnectedAccountTile(
-                      icon: Icons.facebook_rounded,
-                      name: 'Facebook',
-                      color: const Color(0xFF1877F2),
-                      isConnected: connectedSet.contains('facebook'),
-                      onToggle: () {
-                        if (connectedSet.contains('facebook')) {
-                          ref.read(oauthServiceProvider).disconnectPlatform('facebook');
-                        } else {
-                          ref.read(oauthServiceProvider).connectPlatform('facebook');
-                        }
-                        ref.invalidate(connectedPlatformsProvider);
-                      },
-                    ),
-                  ],
+                // Rich connected account cards
+                final allPlatforms = [
+                  {'key': 'instagram', 'icon': Icons.camera_alt_rounded, 'name': 'Instagram', 'color': const Color(0xFFE1306C)},
+                  {'key': 'facebook', 'icon': Icons.facebook_rounded, 'name': 'Facebook', 'color': const Color(0xFF1877F2)},
+                  {'key': 'youtube', 'icon': Icons.smart_display_rounded, 'name': 'YouTube', 'color': const Color(0xFFFF0000)},
+                  {'key': 'twitter', 'icon': Icons.tag_rounded, 'name': 'Twitter', 'color': const Color(0xFF1DA1F2)},
+                  {'key': 'linkedin', 'icon': Icons.work_rounded, 'name': 'LinkedIn', 'color': const Color(0xFF0077B5)},
+                  {'key': 'tiktok', 'icon': Icons.music_note_rounded, 'name': 'TikTok', 'color': const Color(0xFF000000)},
+                ];
+
+                return Column(
+                  children: allPlatforms.map((p) {
+                    final key = p['key'] as String;
+                    final isConnected = connectedSet.contains(key);
+                    final accountData = isConnected
+                        ? connectedList.firstWhere((e) => e['platform'] == key)
+                        : null;
+
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 10),
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).cardColor,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: isConnected 
+                            ? (p['color'] as Color).withOpacity(0.4) 
+                            : Colors.grey.withOpacity(0.15),
+                          width: isConnected ? 1.5 : 1,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 20,
+                            backgroundColor: (p['color'] as Color).withOpacity(0.1),
+                            child: Icon(p['icon'] as IconData, color: p['color'] as Color, size: 22),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(p['name'] as String, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+                                const SizedBox(height: 2),
+                                if (isConnected && accountData != null)
+                                  Text(
+                                    '@${accountData['platform_username'] ?? 'connected'}',
+                                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                                  )
+                                else
+                                  Text('Not connected', style: TextStyle(fontSize: 12, color: Colors.grey[400])),
+                              ],
+                            ),
+                          ),
+                          if (isConnected)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: AppTheme.successColor.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(width: 6, height: 6, decoration: const BoxDecoration(color: AppTheme.successColor, shape: BoxShape.circle)),
+                                  const SizedBox(width: 4),
+                                  const Text('Live', style: TextStyle(fontSize: 11, color: AppTheme.successColor, fontWeight: FontWeight.w600)),
+                                ],
+                              ),
+                            ),
+                          const SizedBox(width: 8),
+                          TextButton(
+                            onPressed: () {
+                              if (isConnected) {
+                                showDialog(
+                                  context: context,
+                                  builder: (ctx) => AlertDialog(
+                                    title: Text('Disconnect ${p['name']}?'),
+                                    content: const Text('This will remove access to this account. You can reconnect anytime.'),
+                                    actions: [
+                                      TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+                                      TextButton(
+                                        onPressed: () {
+                                          ref.read(oauthServiceProvider).disconnectPlatform(key);
+                                          Navigator.pop(ctx);
+                                        },
+                                        child: const Text('Disconnect', style: TextStyle(color: Colors.red)),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              } else {
+                                ref.read(oauthServiceProvider).connectPlatform(key);
+                              }
+                            },
+                            child: Text(
+                              isConnected ? 'Disconnect' : 'Connect',
+                              style: TextStyle(
+                                color: isConnected ? Colors.red[400] : p['color'] as Color,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
                 );
               },
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Text('Error: $e'),
+              error: (e, __) => Text('Error: $e'),
             ),
             const SizedBox(height: 24),
 

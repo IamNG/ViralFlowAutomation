@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:viralflow_automation/app/app_theme.dart';
 import 'package:viralflow_automation/core/models/content_model.dart';
 import 'package:viralflow_automation/core/providers/providers.dart';
+import 'package:viralflow_automation/core/services/ai_service.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
@@ -31,6 +32,8 @@ class _CreateContentPageState extends ConsumerState<CreateContentPage> {
   String _generatedCaption = '';
   List<String> _generatedHashtags = [];
   String? _generatedImageUrl;
+  Map<String, RepurposedVariant>? _repurposedVariants;
+  bool _isRepurposing = false;
 
   final List<Map<String, dynamic>> _contentTypes = [
     {'type': ContentType.post, 'icon': Icons.article_rounded, 'label': 'Post'},
@@ -158,6 +161,41 @@ class _CreateContentPageState extends ConsumerState<CreateContentPage> {
       setState(() {
         _selectedMedia = result.files.first;
       });
+    }
+  }
+
+  Future<void> _repurposeContent() async {
+    final caption = _captionController.text.trim();
+    if (caption.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Generate or write a caption first!')),
+      );
+      return;
+    }
+    if (_selectedPlatforms.length < 2) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Select at least 2 platforms to repurpose!')),
+      );
+      return;
+    }
+
+    setState(() => _isRepurposing = true);
+    try {
+      final result = await ref.read(aiServiceProvider).repurposeContent(
+        caption: caption,
+        targetPlatforms: _selectedPlatforms.toList(),
+        tone: _selectedTone,
+        language: _selectedLanguage,
+      );
+      setState(() => _repurposedVariants = result);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Repurpose error: $e'), backgroundColor: AppTheme.errorColor),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isRepurposing = false);
     }
   }
 
@@ -575,6 +613,62 @@ class _CreateContentPageState extends ConsumerState<CreateContentPage> {
                     ),
                   ),
                 ),
+                const SizedBox(height: 24),
+              ],
+
+              // Repurpose Button
+              if (_generatedCaption.isNotEmpty || _captionController.text.isNotEmpty) ...[
+                Container(
+                  width: double.infinity,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(colors: [Color(0xFF667eea), Color(0xFF764ba2)]),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: ElevatedButton.icon(
+                    onPressed: _isRepurposing ? null : _repurposeContent,
+                    icon: _isRepurposing
+                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : const Icon(Icons.auto_fix_high_rounded, color: Colors.white),
+                    label: Text(
+                      _isRepurposing ? 'Repurposing...' : '🔄 Repurpose for All Platforms',
+                      style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 15),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+              ],
+
+              // Repurposed Platform Preview Cards
+              if (_repurposedVariants != null && _repurposedVariants!.isNotEmpty) ...[
+                _SectionTitle('📱 Platform Previews', Icons.devices_rounded),
+                const SizedBox(height: 12),
+                ..._repurposedVariants!.entries.map((entry) {
+                  final platform = entry.key;
+                  final variant = entry.value;
+                  final platformColors = {
+                    'instagram': const Color(0xFFE1306C),
+                    'facebook': const Color(0xFF1877F2),
+                    'twitter': const Color(0xFF1DA1F2),
+                    'linkedin': const Color(0xFF0077B5),
+                    'tiktok': const Color(0xFF000000),
+                    'youtube': const Color(0xFFFF0000),
+                  };
+                  final color = platformColors[platform] ?? AppTheme.primaryColor;
+
+                  return _SocialPostMockup(
+                    platform: platform,
+                    variant: variant,
+                    imageUrl: _generatedImageUrl,
+                    color: color,
+                    username: ref.watch(currentUserProvider).value?.fullName.toLowerCase().replaceAll(' ', '_') ?? 'user',
+                  );
+                }).toList(),
                 const SizedBox(height: 24),
               ],
 
