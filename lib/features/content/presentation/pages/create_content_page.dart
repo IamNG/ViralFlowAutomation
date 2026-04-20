@@ -575,16 +575,49 @@ class _CreateContentPageState extends ConsumerState<CreateContentPage> {
   }
 
   Future<void> _saveContent(ContentStatus status) async {
+    if (_creationMode == CreationMode.manual && _selectedMedia == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select an image or video to upload!')),
+      );
+      return;
+    }
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Processing and Saving... ⏳')),
+      );
+    }
+
     try {
+      String finalImageUrl = _generatedImageUrl ?? '';
+      String finalVideoUrl = '';
+
+      if (_creationMode == CreationMode.manual && _selectedMedia != null) {
+        final uploadedUrl = await ref.read(contentServiceProvider).uploadMedia(_selectedMedia!);
+        final ext = _selectedMedia!.extension?.toLowerCase() ?? '';
+        if (ext == 'mp4' || ext == 'mov' || ext == 'avi') {
+          finalVideoUrl = uploadedUrl;
+        } else {
+          finalImageUrl = uploadedUrl;
+        }
+      }
+
+      String titleText = _creationMode == CreationMode.manual 
+          ? (_captionController.text.isEmpty ? 'Uploaded Media Post' : _captionController.text) 
+          : _promptController.text.trim();
+          
+      if (titleText.length > 50) titleText = titleText.substring(0, 50);
+
       await ref.read(contentServiceProvider).createContent(
             ContentModel(
               id: '',
               userId: '',
-              title: _promptController.text.trim().substring(0, _promptController.text.trim().length > 50 ? 50 : _promptController.text.trim().length),
+              title: titleText.isEmpty ? 'New Post' : titleText,
               caption: _captionController.text.trim(),
               hashtags: _generatedHashtags,
-              imageUrl: _generatedImageUrl ?? '',
-              aiPrompt: _promptController.text.trim(),
+              imageUrl: finalImageUrl,
+              videoUrl: finalVideoUrl, // Added dynamically
+              aiPrompt: _creationMode == CreationMode.ai ? _promptController.text.trim() : '',
               contentType: _selectedContentType,
               status: status,
               platforms: _selectedPlatforms.toList(),
@@ -595,10 +628,13 @@ class _CreateContentPageState extends ConsumerState<CreateContentPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(status == ContentStatus.draft ? 'Draft saved! 📝' : 'Content scheduled! 📅'),
+            content: Text(status == ContentStatus.draft ? 'Draft saved successfully! 📝' : 'Content scheduled successfully! 📅'),
             backgroundColor: AppTheme.successColor,
           ),
         );
+        setState(() {
+          _selectedMedia = null;
+        });
       }
     } catch (e) {
       if (mounted) {

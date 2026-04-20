@@ -1,5 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:viralflow_automation/core/models/content_model.dart';
+import 'package:file_picker/file_picker.dart';
+import 'dart:io';
 
 class ContentService {
   final SupabaseClient _client;
@@ -14,6 +16,34 @@ class ContentService {
         .select()
         .single();
     return ContentModel.fromJson(response);
+  }
+
+  /// Upload Media to Supabase Storage
+  Future<String> uploadMedia(PlatformFile file) async {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) throw Exception('User not authenticated');
+
+    final ext = file.extension ?? 'mp4';
+    final fileName = '${userId}_${DateTime.now().millisecondsSinceEpoch}.$ext';
+    final path = '$userId/$fileName';
+
+    if (file.bytes != null) {
+      // Web / Binary approach
+      await _client.storage.from('content-media').uploadBinary(
+            path,
+            file.bytes!,
+          );
+    } else if (file.path != null) {
+      // Mobile approach
+      await _client.storage.from('content-media').upload(
+            path,
+            File(file.path!),
+          );
+    } else {
+      throw Exception('Invalid file data');
+    }
+
+    return _client.storage.from('content-media').getPublicUrl(path);
   }
 
   /// Get all content for current user

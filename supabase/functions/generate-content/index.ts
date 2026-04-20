@@ -140,6 +140,15 @@ serve(async (req) => {
     });
 
     const openaiData = await openaiResponse.json();
+    
+    if (!openaiResponse.ok || !openaiData.choices) {
+      console.error("OpenAI Error:", openaiData);
+      return new Response(
+        JSON.stringify({ error: `OpenAI API Error: ${(openaiData.error?.message) || 'Unknown error'}` }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
     const content = JSON.parse(openaiData.choices[0].message.content);
 
     // Deduct credits
