@@ -4,7 +4,7 @@
 -- ============================================
 
 CREATE TABLE public.platform_analytics (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
   connected_account_id UUID REFERENCES public.connected_accounts(id) ON DELETE CASCADE, -- NULL means aggregate totals
   platform TEXT NOT NULL CHECK (platform IN ('instagram', 'youtube', 'twitter', 'linkedin', 'facebook', 'tiktok', 'all')),
