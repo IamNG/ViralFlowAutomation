@@ -97,3 +97,8 @@ final scheduledContentProvider = FutureProvider.autoDispose((ref) async {
 final connectedPlatformsProvider = FutureProvider.autoDispose((ref) async {
   return ref.read(oauthServiceProvider).getConnectedPlatforms();
 });
+
+// Connected platforms Stream provider
+final connectedPlatformsStreamProvider = StreamProvider.autoDispose<List<Map<String, dynamic>>>((ref) {
+  return ref.read(oauthServiceProvider).connectedPlatformsStream();
+});

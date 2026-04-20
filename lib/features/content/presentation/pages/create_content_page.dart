@@ -238,28 +238,60 @@ class _CreateContentPageState extends ConsumerState<CreateContentPage> {
             // Step 2: Platform Selection
             _SectionTitle('2. Select Platforms', Icons.share_rounded),
             const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: _platforms.map((item) {
-                final isSelected = _selectedPlatforms.contains(item['platform']);
-                return FilterChip(
-                  selected: isSelected,
-                  onSelected: (selected) {
-                    setState(() {
-                      if (selected) {
-                        _selectedPlatforms.add(item['platform'] as Platform);
-                      } else {
-                        _selectedPlatforms.remove(item['platform']);
-                      }
-                    });
-                  },
-                  avatar: Icon(item['icon'] as IconData, size: 16, color: item['color'] as Color),
-                  label: Text(item['label'] as String),
-                  selectedColor: (item['color'] as Color).withOpacity(0.2),
-                  checkmarkColor: item['color'] as Color,
+            ref.watch(connectedPlatformsStreamProvider).when(
+              data: (connectedData) {
+                final connectedNames = connectedData.map((e) => e['platform'] as String).toList();
+                final availablePlatforms = _platforms.where((p) => connectedNames.contains((p['platform'] as Platform).name)).toList();
+
+                if (availablePlatforms.isEmpty) {
+                  return Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.orange.withOpacity(0.5)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.warning_rounded, color: Colors.orange),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'No platforms connected yet. Please connect Instagram or Facebook from Settings.',
+                            style: TextStyle(color: Colors.orange[800], fontSize: 13),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                return Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: availablePlatforms.map((item) {
+                    final isSelected = _selectedPlatforms.contains(item['platform']);
+                    return FilterChip(
+                      selected: isSelected,
+                      onSelected: (selected) {
+                        setState(() {
+                          if (selected) {
+                            _selectedPlatforms.add(item['platform'] as Platform);
+                          } else {
+                            _selectedPlatforms.remove(item['platform']);
+                          }
+                        });
+                      },
+                      avatar: Icon(item['icon'] as IconData, size: 16, color: item['color'] as Color),
+                      label: Text(item['label'] as String),
+                      selectedColor: (item['color'] as Color).withOpacity(0.2),
+                      checkmarkColor: item['color'] as Color,
+                    );
+                  }).toList(),
                 );
-              }).toList(),
+              },
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (e, _) => Text('Error loading platforms: $e', style: const TextStyle(color: Colors.red)),
             ),
             const SizedBox(height: 24),
 
