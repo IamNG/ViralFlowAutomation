@@ -10,19 +10,21 @@ class OAuthService {
     final userId = _client.auth.currentUser?.id;
     if (userId == null) throw Exception('User not authenticated');
 
-    // MOCK / SANDBOX Flow for Immediate Testing (Phase 2 Roadmap)
-    // Replace this with Real OAuth Edge Function redirect once Meta App gets approved.
-    if (platform == 'instagram' || platform == 'facebook') {
-      await Future.delayed(const Duration(seconds: 2)); // Simulate API handshake
+    if (platform == 'facebook' || platform == 'instagram') {
+      const appId = '825196553310972'; // The Client ID provided safely into code
+      const redirectUri = 'https://eppgbkjvsauluzlavqvj.supabase.co/functions/v1/auth-callback';
+      // We pass the platform_userId to identify who just authenticated on the callback securely
+      final state = '${platform}_$userId';
       
-      await _client.from('connected_accounts').upsert({
-        'user_id': userId,
-        'platform': platform,
-        'platform_user_id': 'mock_${platform}_123',
-        'platform_username': '@developer_$platform',
-        'access_token': 'mock_access_token_${platform}_xxxx',
-        'is_active': true,
-      }, onConflict: 'user_id, platform');
+      final String scope = platform == 'instagram' 
+        ? 'instagram_basic,instagram_content_publish,pages_show_list,pages_read_engagement,pages_manage_posts'
+        : 'pages_show_list,pages_read_engagement,pages_manage_posts';
+        
+      final url = Uri.parse('https://www.facebook.com/v19.0/dialog/oauth?client_id=$appId&redirect_uri=$redirectUri&state=$state&scope=$scope&response_type=code');
+
+      if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+        throw Exception('Could not launch Meta Gateway');
+      }
       return;
     }
 
